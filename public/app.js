@@ -3,14 +3,6 @@ const contextEditor = ace.edit('context-editor');
 
 ace.require('ace/ext/language_tools');
 
-const STORAGE_KEYS = {
-  template: 'velocity-playground:template',
-  context: 'velocity-playground:context',
-  sample: 'velocity-playground:sample',
-  autoRun: 'velocity-playground:autoRun',
-  snapshots: 'velocity-playground:snapshots',
-};
-
 const defaultContext = {
   user: { name: 'Ada Lovelace', role: 'Engineer' },
   numbers: [3, 7, 11],
@@ -69,21 +61,6 @@ Math helpers:
 - Average: $helpers.math.average(5, 10, 15)
 - Max: $helpers.math.max(2, 9, 4)
 `,
-  control: `#if($user.role == "Engineer")
-Hello engineer $user.name!
-#elseif($user.role == "Manager")
-Greetings manager $user.name!
-#else
-Hi $user.name!
-#end
-
-#set($count = $numbers.size())
-You provided $count numbers.
-
-#foreach($n in $numbers)
-Number: $n
-#end
-`,
 };
 
 const setupEditor = (editor, mode, placeholder) => {
@@ -101,27 +78,12 @@ const setupEditor = (editor, mode, placeholder) => {
   if (placeholder) editor.session.setValue(placeholder);
 };
 
-const persistedTemplate = localStorage.getItem(STORAGE_KEYS.template);
-const persistedContext = localStorage.getItem(STORAGE_KEYS.context);
-const persistedSample = localStorage.getItem(STORAGE_KEYS.sample);
-
-setupEditor(templateEditor, 'velocity', persistedTemplate || sampleTemplates[persistedSample] || sampleTemplates.welcome);
-setupEditor(contextEditor, 'json', persistedContext || JSON.stringify(defaultContext, null, 2));
+setupEditor(templateEditor, 'velocity', sampleTemplates.welcome);
+setupEditor(contextEditor, 'json', JSON.stringify(defaultContext, null, 2));
 
 const outputEl = document.getElementById('output');
 const errorBanner = document.getElementById('error-banner');
 const runButton = document.getElementById('run-button');
-const templateSize = document.getElementById('template-size');
-const statusMessage = document.getElementById('status-message');
-const renderTiming = document.getElementById('render-timing');
-const autoRunSwitch = document.getElementById('auto-run');
-const sampleSelect = document.getElementById('sample-select');
-const snapshotSelect = document.getElementById('snapshot-select');
-const configTemplateLimit = document.getElementById('config-template-limit');
-const configPayloadLimit = document.getElementById('config-payload-limit');
-const configRateLimit = document.getElementById('config-rate-limit');
-let isRunning = false;
-let config = { templateSizeLimit: null };
 
 const showError = (message) => {
   errorBanner.textContent = message;
@@ -129,14 +91,8 @@ const showError = (message) => {
 };
 
 const setRunning = (running) => {
-  isRunning = running;
   runButton.disabled = running;
   runButton.textContent = running ? 'Running...' : 'Run Template';
-};
-
-const updateTemplateSize = () => {
-  const chars = templateEditor.getValue().length;
-  templateSize.textContent = `${chars} chars`;
 };
 
 const beautifyVelocity = () => {
@@ -158,7 +114,6 @@ const beautifyVelocity = () => {
 
   const beautified = pd ? pd.indent(indented.join('\n')) : indented.join('\n');
   templateEditor.setValue(beautified, 1);
-  updateTemplateSize();
 };
 
 const escapeHtml = () => {
@@ -193,21 +148,10 @@ const formatContext = () => {
   }
 };
 
-const setStatus = (text) => {
-  statusMessage.textContent = text;
-};
-
 const runTemplate = async () => {
-  if (isRunning) return;
-  if (config.templateSizeLimit && templateEditor.getValue().length > config.templateSizeLimit) {
-    showError(`Template exceeds ${config.templateSizeLimit} characters (client check).`);
-    return;
-  }
   showError('');
   outputEl.textContent = 'Rendering...';
   setRunning(true);
-  setStatus('Running...');
-  renderTiming.textContent = '';
   let parsedContext = {};
   try {
     parsedContext = JSON.parse(contextEditor.getValue() || '{}');
@@ -215,12 +159,10 @@ const runTemplate = async () => {
     showError(`Invalid JSON context: ${error.message}`);
     outputEl.textContent = '';
     setRunning(false);
-    setStatus('Invalid context');
     return;
   }
 
   try {
-    const started = performance.now();
     const response = await fetch('/api/render', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -229,13 +171,9 @@ const runTemplate = async () => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Render failed');
     outputEl.textContent = data.result;
-    const elapsed = performance.now() - started;
-    renderTiming.textContent = `${elapsed.toFixed(1)} ms`;
-    setStatus('Rendered successfully');
   } catch (error) {
     showError(error.message);
     outputEl.textContent = '';
-    setStatus('Render failed');
   } finally {
     setRunning(false);
   }
@@ -261,88 +199,6 @@ const loadHelpers = async () => {
   }
 };
 
-const loadConfig = async () => {
-  try {
-    const res = await fetch('/api/config');
-    const data = await res.json();
-    config = data;
-    configTemplateLimit.textContent = data.templateSizeLimit ? `${data.templateSizeLimit} chars` : '—';
-    configPayloadLimit.textContent = data.payloadLimit || '—';
-    configRateLimit.textContent = data.rateLimitPerMinute ? `${data.rateLimitPerMinute} req/min` : '—';
-  } catch (_error) {
-    configTemplateLimit.textContent = 'Unavailable';
-    configPayloadLimit.textContent = 'Unavailable';
-    configRateLimit.textContent = 'Unavailable';
-  }
-};
-
-const readSnapshots = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.snapshots);
-    return raw ? JSON.parse(raw) : [];
-  } catch (_err) {
-    return [];
-  }
-};
-
-const writeSnapshots = (snapshots) => {
-  localStorage.setItem(STORAGE_KEYS.snapshots, JSON.stringify(snapshots.slice(0, 20)));
-};
-
-const refreshSnapshotSelect = () => {
-  const snapshots = readSnapshots();
-  snapshotSelect.innerHTML = '';
-  snapshots.forEach((snap) => {
-    const option = document.createElement('sl-menu-item');
-    option.value = snap.id;
-    option.textContent = `${snap.name} (${snap.created})`;
-    snapshotSelect.appendChild(option);
-  });
-};
-
-const saveSnapshot = () => {
-  const name = `Snapshot ${new Date().toLocaleTimeString()}`;
-  const snapshots = [
-    { id: crypto.randomUUID(), name, template: templateEditor.getValue(), context: contextEditor.getValue(), created: new Date().toLocaleTimeString() },
-    ...readSnapshots(),
-  ];
-  writeSnapshots(snapshots);
-  refreshSnapshotSelect();
-};
-
-const restoreSnapshot = (id) => {
-  const snapshots = readSnapshots();
-  const match = snapshots.find((snap) => snap.id === id);
-  if (!match) return;
-  templateEditor.setValue(match.template || '', 1);
-  contextEditor.setValue(match.context || '{}', 1);
-  updateTemplateSize();
-  persistState();
-  if (autoRunSwitch.checked) runTemplate();
-};
-
-const debounce = (fn, delay = 300) => {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
-  };
-};
-
-const persistState = debounce(() => {
-  localStorage.setItem(STORAGE_KEYS.template, templateEditor.getValue());
-  localStorage.setItem(STORAGE_KEYS.context, contextEditor.getValue());
-  localStorage.setItem(STORAGE_KEYS.autoRun, autoRunSwitch.checked ? '1' : '0');
-}, 250);
-
-const handleEditorChange = debounce(() => {
-  updateTemplateSize();
-  persistState();
-  if (autoRunSwitch.checked) {
-    runTemplate();
-  }
-}, 500);
-
 document.getElementById('run-button').addEventListener('click', runTemplate);
 document.getElementById('beautify-button').addEventListener('click', beautifyVelocity);
 document.getElementById('format-context-button').addEventListener('click', formatContext);
@@ -359,32 +215,9 @@ document.getElementById('sample-select').addEventListener('sl-change', (event) =
   const key = event.detail.value;
   const template = sampleTemplates[key] || '';
   templateEditor.setValue(template, 1);
-  localStorage.setItem(STORAGE_KEYS.sample, key);
-  updateTemplateSize();
-  if (autoRunSwitch.checked) runTemplate();
-});
-document.getElementById('snapshot-button').addEventListener('click', () => {
-  saveSnapshot();
 });
 document.getElementById('clear-output').addEventListener('click', () => {
   outputEl.textContent = '';
-});
-document.getElementById('download-output').addEventListener('click', () => {
-  const blob = new Blob([outputEl.textContent || ''], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'velocity-output.txt';
-  link.click();
-  URL.revokeObjectURL(url);
-});
-
-document.getElementById('reset-template').addEventListener('click', () => {
-  const sampleKey = localStorage.getItem(STORAGE_KEYS.sample) || 'welcome';
-  templateEditor.setValue(sampleTemplates[sampleKey] || sampleTemplates.welcome, 1);
-  updateTemplateSize();
-  persistState();
-  if (autoRunSwitch.checked) runTemplate();
 });
 
 document.addEventListener('keydown', (event) => {
@@ -395,64 +228,4 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-document.getElementById('import-context').addEventListener('click', () => {
-  document.getElementById('context-file').click();
-});
-
-document.getElementById('context-file').addEventListener('change', (event) => {
-  const [file] = event.target.files;
-  event.target.value = '';
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const parsed = JSON.parse(reader.result);
-      contextEditor.setValue(JSON.stringify(parsed, null, 2), 1);
-      persistState();
-      showError('');
-      if (autoRunSwitch.checked) runTemplate();
-    } catch (error) {
-      showError(`Invalid JSON file: ${error.message}`);
-    }
-  };
-  reader.readAsText(file);
-});
-
-document.getElementById('export-context').addEventListener('click', () => {
-  const blob = new Blob([contextEditor.getValue() || '{}'], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'context.json';
-  link.click();
-  URL.revokeObjectURL(url);
-});
-
-autoRunSwitch.checked = localStorage.getItem(STORAGE_KEYS.autoRun) !== '0';
-if (persistedSample && sampleTemplates[persistedSample]) {
-  sampleSelect.value = persistedSample;
-}
-templateEditor.session.on('change', handleEditorChange);
-contextEditor.session.on('change', handleEditorChange);
-autoRunSwitch.addEventListener('sl-change', () => {
-  localStorage.setItem(STORAGE_KEYS.autoRun, autoRunSwitch.checked ? '1' : '0');
-  if (autoRunSwitch.checked) runTemplate();
-});
-snapshotSelect.addEventListener('sl-change', (event) => {
-  restoreSnapshot(event.detail.value);
-});
-document.getElementById('delete-snapshot').addEventListener('click', () => {
-  const id = snapshotSelect.value;
-  if (!id) return;
-  const snapshots = readSnapshots().filter((snap) => snap.id !== id);
-  writeSnapshots(snapshots);
-  refreshSnapshotSelect();
-});
-document.getElementById('clear-snapshots').addEventListener('click', () => {
-  writeSnapshots([]);
-  refreshSnapshotSelect();
-});
-updateTemplateSize();
 loadHelpers();
-loadConfig();
-refreshSnapshotSelect();

@@ -8,7 +8,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const TEMPLATE_SIZE_LIMIT = Number(process.env.TEMPLATE_SIZE_LIMIT || 50_000);
 const jsonLimit = process.env.PAYLOAD_LIMIT || '100kb';
-const RATE_LIMIT = Number(process.env.RATE_LIMIT || 60);
 
 app.use(express.json({ limit: jsonLimit }));
 app.use(express.urlencoded({ extended: false, limit: jsonLimit }));
@@ -29,7 +28,7 @@ app.use(
 
 const limiter = rateLimit({
   windowMs: 60 * 1000,
-  limit: RATE_LIMIT,
+  limit: Number(process.env.RATE_LIMIT || 60),
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -139,14 +138,6 @@ app.get('/api/helpers', (_req, res) => {
       numbers: [1, 2, 3, 5],
       now: safeHelpers.date.now(),
     },
-  });
-});
-
-app.get('/api/config', (_req, res) => {
-  res.json({
-    templateSizeLimit: TEMPLATE_SIZE_LIMIT,
-    rateLimitPerMinute: RATE_LIMIT,
-    payloadLimit: jsonLimit,
   });
 });
 

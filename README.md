@@ -54,12 +54,6 @@ Runs ESLint against the project sources for static validation.
 - **Template beautifier**: Re-indents common directives (`#if`, `#foreach`, `#macro`, `#parse`) and optionally prettifies via `pretty-data`.
 - **Context formatter**: Pretty-prints JSON context with one click.
 - **Escape / unescape tools**: Quickly encode or decode HTML entities inside the template pane.
-- **Auto-run + timing**: Toggle live rendering as you type with render time feedback.
-- **Persistence**: Template, context, sample choice, and auto-run preference are stored in `localStorage` for quick reloads.
-- **Import / export**: Upload or download JSON context; download rendered output to a file.
-- **Snapshots**: Save and restore multiple template/context pairs from localStorage for fast iteration.
-- **Limits overview**: Shows server-enforced limits (template size, payload size, rate limit) fetched from the backend.
-- **Status + size hints**: Live character count for templates and status bar for render state.
 - **Date helpers**: `helpers.date.now()`, `helpers.date.format(iso, locale)`, `helpers.date.addDays(iso, days)`.
 - **Math helpers**: `helpers.math.sum(...)`, `helpers.math.average(...)`, `helpers.math.max(...)`.
 - **String helpers**: `helpers.strings.escapeHtml(str)`, `helpers.strings.unescapeHtml(str)`.
@@ -74,10 +68,7 @@ Runs ESLint against the project sources for static validation.
 3. Adjust the JSON context in the **Context** editor.
 4. Click **Run Template** to render; results appear in the **Rendered Output** pane.
 5. Use **Beautify**, **Format Context**, **Escape HTML**, and **Unescape HTML** to adjust formatting and safety.
-6. Use **Auto-run** to render as you type; watch the status bar for timing and state.
-7. Import/export context JSON or download rendered output with the provided buttons.
-8. Save or restore **Snapshots** for quick iterations.
-9. Shortcut: press **Ctrl/Cmd + Enter** to run the template from either editor.
+6. Shortcut: press **Ctrl/Cmd + Enter** to run the template from either editor.
 
 ### Example template
 
@@ -107,8 +98,6 @@ Their sum is $total.
 - Keep payloads small (default 100kb limit) and avoid running untrusted templates in production without further sandboxing.
 - The provided helpers focus on deterministic, side-effect-free operations. Extend cautiously if adding new functionality.
 - Basic rate limiting is enabled (60 req/min by default) and templates larger than 50k characters are rejected to protect the sandbox.
-- The UI uses `localStorage` for convenience; clear it if you need a clean slate.
-- Client-side checks enforce template length before sending to the server, but the server remains the source of truth for validation and limits.
 
 ## Project structure
 
