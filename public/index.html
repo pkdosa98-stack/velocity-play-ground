@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Velocity Playground</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.0/cdn/themes/light.css" />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.0/cdn/shoelace-autoloader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js" integrity="sha512-+dWMXMXhj2LsNNnwH0V+3qM4Vry3Js72i0zQERthcld5qkkC5eUlVRpZjn8CDxqIZUAexkueGh4Pn6aLMT1xYg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/mode-velocity.min.js" integrity="sha512-Zuhp0CgJ0FJHOUdAbmlr2YI52mmXWwrCs1aYjHixdSoaujFHuVR5Y56GTdrzQGdQNNgyTE3YsQ3/9DKuI+YM/w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/mode-json.min.js" integrity="sha512-BOBBsVpV9MjOhnMbp/qMDpvLFFzlJK1PQxfXLQsnwJ3N+BThGw8mCIQQEgmMhTKGkd9eXDNUiyPvdMIUE8uheQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-language_tools.min.js" integrity="sha512-GbQQUcRfR6qeXPKAUoZwJvA+EGYs20J+zDXyeTlXnZYifMY7N5u7sD4LvG3GX9bQ/W+igNdAZ+dqiQjz5GaD1g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pretty-data@0.40.0/pretty-data-min.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="branding">
+        <h1>Velocity Playground</h1>
+        <p>Experiment with Apache Velocity templates, helpers, and utilities.</p>
+      </div>
+      <div class="actions">
+        <sl-button size="small" variant="primary" id="run-button">Run Template</sl-button>
+        <sl-button size="small" variant="default" id="beautify-button">Beautify</sl-button>
+        <sl-button size="small" variant="default" id="format-context-button">Format Context</sl-button>
+        <sl-button size="small" variant="default" id="escape-button">Escape HTML</sl-button>
+        <sl-button size="small" variant="default" id="unescape-button">Unescape HTML</sl-button>
+        <sl-button size="small" variant="success" id="snapshot-button">Save Snapshot</sl-button>
+        <sl-switch id="auto-run" size="small" checked>Auto-run</sl-switch>
+      </div>
+    </header>
+
+    <main>
+      <section class="pane">
+        <div class="pane-header">
+          <h2>Template</h2>
+          <sl-select id="sample-select" placeholder="Sample templates">
+            <sl-menu-item value="welcome">Welcome email</sl-menu-item>
+            <sl-menu-item value="invoice">Invoice summary</sl-menu-item>
+            <sl-menu-item value="helpers">Helpers showcase</sl-menu-item>
+            <sl-menu-item value="control">Control flow primer</sl-menu-item>
+          </sl-select>
+        </div>
+        <div class="meta">
+          <span id="template-size">0 chars</span>
+          <sl-button size="x-small" variant="default" id="reset-template">Reset template</sl-button>
+        </div>
+        <div id="template-editor" class="editor"></div>
+      </section>
+
+      <section class="pane">
+        <div class="pane-header">
+          <h2>Context (JSON)</h2>
+          <div class="context-actions">
+            <sl-button size="small" variant="neutral" id="reset-context">Reset context</sl-button>
+            <sl-button size="small" variant="default" id="import-context">Import</sl-button>
+            <sl-button size="small" variant="default" id="export-context">Export</sl-button>
+            <input type="file" id="context-file" accept=".json,application/json" hidden />
+          </div>
+        </div>
+        <div id="context-editor" class="editor"></div>
+      </section>
+
+      <section class="pane">
+        <div class="pane-header">
+          <h2>Rendered Output</h2>
+          <div class="output-actions">
+            <span class="hint">Ctrl/Cmd + Enter to run</span>
+            <sl-button size="small" variant="neutral" id="copy-output">Copy</sl-button>
+            <sl-button size="small" variant="default" id="clear-output">Clear</sl-button>
+            <sl-button size="small" variant="default" id="download-output">Download</sl-button>
+          </div>
+        </div>
+        <pre id="output" class="output"></pre>
+        <div class="status-bar">
+          <span id="status-message">Idle</span>
+          <span id="render-timing"></span>
+        </div>
+      </section>
+    </main>
+
+    <section class="helpers">
+      <h3>Built-in helpers</h3>
+      <div id="helpers-list" class="helper-grid"></div>
+    </section>
+
+    <section class="helpers">
+      <h3>Snapshots</h3>
+      <div class="snapshot-bar">
+        <sl-select id="snapshot-select" placeholder="Restore snapshot"></sl-select>
+        <sl-button size="small" variant="default" id="delete-snapshot">Delete</sl-button>
+        <sl-button size="small" variant="default" id="clear-snapshots">Clear all</sl-button>
+      </div>
+    </section>
+
+    <section class="helpers">
+      <h3>Limits & runtime</h3>
+      <div class="helper-grid">
+        <div class="helper">
+          <strong>Template limit</strong>
+          <div id="config-template-limit">Loading…</div>
+        </div>
+        <div class="helper">
+          <strong>Payload limit</strong>
+          <div id="config-payload-limit">Loading…</div>
+        </div>
+        <div class="helper">
+          <strong>Rate limit</strong>
+          <div id="config-rate-limit">Loading…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="errors" id="error-banner" hidden></section>
+
+    <script src="app.js"></script>
+  </body>
+</html>
