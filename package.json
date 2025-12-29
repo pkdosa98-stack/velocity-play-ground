@@ -1,0 +1,21 @@
+{
+  "name": "velocity-play-ground",
+  "version": "1.0.0",
+  "description": "Web-based Velocity playground with syntax highlighting, formatting, and helper utilities.",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "NODE_ENV=development node src/server.js",
+    "lint": "eslint . --ext .js --report-unused-disable-directives",
+    "test": "npm run lint"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^7.1.0",
+    "velocityjs": "^2.0.6"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  }
+}
