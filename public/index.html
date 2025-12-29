@@ -25,7 +25,6 @@
         <sl-button size="small" variant="default" id="format-context-button">Format Context</sl-button>
         <sl-button size="small" variant="default" id="escape-button">Escape HTML</sl-button>
         <sl-button size="small" variant="default" id="unescape-button">Unescape HTML</sl-button>
-        <sl-switch id="auto-run" size="small" checked>Auto-run</sl-switch>
       </div>
     </header>
 
@@ -39,22 +38,13 @@
             <sl-menu-item value="helpers">Helpers showcase</sl-menu-item>
           </sl-select>
         </div>
-        <div class="meta">
-          <span id="template-size">0 chars</span>
-          <sl-button size="x-small" variant="default" id="reset-template">Reset template</sl-button>
-        </div>
         <div id="template-editor" class="editor"></div>
       </section>
 
       <section class="pane">
         <div class="pane-header">
           <h2>Context (JSON)</h2>
-          <div class="context-actions">
-            <sl-button size="small" variant="neutral" id="reset-context">Reset context</sl-button>
-            <sl-button size="small" variant="default" id="import-context">Import</sl-button>
-            <sl-button size="small" variant="default" id="export-context">Export</sl-button>
-            <input type="file" id="context-file" accept=".json,application/json" hidden />
-          </div>
+          <sl-button size="small" variant="neutral" id="reset-context">Reset context</sl-button>
         </div>
         <div id="context-editor" class="editor"></div>
       </section>
@@ -66,14 +56,9 @@
             <span class="hint">Ctrl/Cmd + Enter to run</span>
             <sl-button size="small" variant="neutral" id="copy-output">Copy</sl-button>
             <sl-button size="small" variant="default" id="clear-output">Clear</sl-button>
-            <sl-button size="small" variant="default" id="download-output">Download</sl-button>
           </div>
         </div>
         <pre id="output" class="output"></pre>
-        <div class="status-bar">
-          <span id="status-message">Idle</span>
-          <span id="render-timing"></span>
-        </div>
       </section>
     </main>
 
